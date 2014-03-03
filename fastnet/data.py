@@ -200,140 +200,6 @@ class ImageNetDataProvider(DataProvider):
     return (3, self.inner_size, self.inner_size)
 
 
-class NoisyImageNetDataProvider(DataProvider):
-  def __init__(self, data_dir, batch_range=None, category_range=None, batch_size=1024):
-    DataProvider.__init__(self, data_dir, batch_range)
-    self.img_size = 256
-    self.border_size = 16
-    self.inner_size = 224
-    self.batch_size = batch_size
-
-    # self.multiview = dp_params['multiview_test'] and test
-    self.multiview = 0
-    self.num_views = 5 * 2
-    self.data_mult = self.num_views if self.multiview else 1
-
-    self.buffer_idx = 0
-    
-    dirs = glob.glob(data_dir + '/n*')
-    synid_to_dir = {}
-    for d in dirs:
-      synid_to_dir[basename(d)[1:]] = d
-
-    if category_range is None:
-      cat_dirs = dirs
-    else:
-      cat_dirs = []
-      for i in category_range:
-        synid = self.batch_meta['label_to_synid'][i]
-        # util.log('Using category: %d, synid: %s, label: %s', i, synid, self.batch_meta['label_names'][i])
-        cat_dirs.append(synid_to_dir[synid])
-
-    self.images = []
-    batch_dict = dict((k, k) for k in self.batch_range)
-
-    for d in cat_dirs:
-      imgs = [v for i, v in enumerate(glob.glob(d + '/*.JPEG')) if i in batch_dict] # jpg -> JPEG by Sainaa    
-      self.images.extend(imgs)
-
-    # build index vector into 'images' and split into groups of batch-size
-    image_index = np.arange(len(self.images))
-    np.random.shuffle(image_index)
-    
-    self.batches = np.array_split(image_index,
-                                  util.divup(len(self.images), batch_size))
-
-    # load noisy labeled images
-    for d in cat_dirs:
-      imgs = [v for i, v in enumerate(glob.glob(d + '/*google*.JPEG')) if i in batch_dict] # jpg -> JPEG by Sainaa    
-      self.images.extend(imgs)
-    self.images = np.array(self.images)
-    image_index_noisy = np.arange(len(self.images) - len(image_index)) + len(image_index)
-    np.random.shuffle(image_index_noisy)
-    self.batches += np.array_split(image_index_noisy,
-                                  util.divup(len(image_index_noisy), batch_size))
-
-    self.batch_range = range(len(self.batches))
-
-    util.log('Starting data provider with %d batches', len(self.batches))
-    np.random.shuffle(self.batch_range)
-
-    imagemean = cPickle.loads(open(data_dir + "image-mean.pickle").read())
-    self.data_mean = (imagemean['data']
-        .astype(np.single)
-        .T
-        .reshape((3, 256, 256))[:, self.border_size:self.border_size + self.inner_size, self.border_size:self.border_size + self.inner_size]
-        .reshape((self.get_data_dims(), 1)))
-
-
-  def __trim_borders(self, images, target):
-    for idx, img in enumerate(images):
-      startY, startX = np.random.randint(0, self.border_size * 2 + 1), np.random.randint(0, self.border_size * 2 + 1)
-        #startY, startX = 0, 0
-      endY, endX = startY + self.inner_size, startX + self.inner_size
-      pic = img[:, startY:endY, startX:endX]
-      if np.random.randint(2) == 0:  # also flip the image with 50% probability
-        pic = pic[:, :, ::-1]
-      target[:, idx] = pic.reshape((self.get_data_dims(),))
-
-  def get_next_batch(self):
-    self.get_next_index()
-
-    epoch = self.curr_epoch
-    batchnum = self.curr_batch
-    names = self.images[self.batches[batchnum]]
-    num_imgs = len(names)
-    labels = np.zeros((1, num_imgs))
-    cropped = np.ndarray((self.get_data_dims(), num_imgs * self.data_mult), dtype=np.uint8)
-    # _load in parallel for training
-    st = time.time()
-    images = []
-    for idx, filename in enumerate(names):
-#       util.log('Loading... %s %s', idx, filename)
-      jpeg = Image.open(filename)
-      if jpeg.mode != "RGB": jpeg = jpeg.convert("RGB")
-      # starts as rows * cols * rgb, tranpose to rgb * rows * cols
-      img = np.asarray(jpeg, np.uint8).transpose(2, 0, 1)
-      images.append(img)
-
-    self.__trim_borders(images, cropped)
-
-    load_time = time.time() - st
-
-    clabel = []
-    # extract label from the filename
-    for idx, filename in enumerate(names):
-      filename = os.path.basename(filename)
-      synid = filename[1:].split('_')[0]
-      label = self.batch_meta['synid_to_label'][synid]
-      labels[0, idx] = label
-
-    st = time.time()
-    cropped = cropped.astype(np.single)
-    cropped = np.require(cropped, dtype=np.single, requirements='C')
-    cropped -= self.data_mean
-
-    align_time = time.time() - st
-
-    labels = np.array(labels)
-    labels = labels.reshape(cropped.shape[1],)
-    labels = np.require(labels, dtype=np.single, requirements='C')
-
-    # util.log("Loaded %d images in %.2f seconds (%.2f _load, %.2f align)",
-    #         num_imgs, time.time() - start, load_time, align_time)
-    # self.data = {'data' : SharedArray(cropped), 'labels' : SharedArray(labels)}
-
-    return BatchData(cropped, labels, epoch)
-
-  # Returns the dimensionality of the two data matrices returned by get_next_batch
-  # idx is the index of the matrix.
-  def get_data_dims(self, idx=0):
-    return self.inner_size ** 2 * 3 if idx == 0 else 1
-
-  @property
-  def image_shape(self):
-    return (3, self.inner_size, self.inner_size)
-
 class CifarDataProvider(DataProvider):
   BATCH_REGEX = re.compile('^data_batch_(\d+)$')
   def get_next_batch(self):
@@ -481,6 +347,29 @@ class ParallelDataProvider(DataProvider):
       #labels = gpu_labels[self.index:self.index + batch_size]
       self.index += batch_size
     return BatchData(data, labels, self._gpu_batch.epoch)
+
+class NoisyDataProvider(DataProvider):
+  def __init__(self, dp_clear, dp_noisy):
+    self.dp_noisy = dp_clear
+    self.reset()
+
+  def reset(self):
+    self.dp_clear.reset()
+    self.dp_noisy.reset()
+
+  def get_next_batch(self, batch_size):
+    pos1 = self.dp_clear.dp.curr_batch_index + 1.0 * self.dp_clear.index / self.dp_clear.dp.batch_size
+    pos1 /= self.dp_clear.dp.get_batch_num()
+    pos1 += self.dp_clear.dp.curr_epoch
+    pos2 = self.dp_noisy.dp.curr_batch_index + 1.0 * self.dp_noisy.index / self.dp_noisy.dp.batch_size
+    pos2 /= self.dp_noisy.dp.get_batch_num()
+    pos2 += self.dp_noisy.dp.curr_epoch
+    if pos1 < pos2:
+      self.is_curr_batch_noisy = False
+      return self.dp_clear.get_next_batch(batch_size)
+    else:
+      self.is_curr_batch_noisy = True
+      return self.dp_noisy.get_next_batch(batch_size)
 
 dp_dict = {}
 def register_data_provider(name, _class):
