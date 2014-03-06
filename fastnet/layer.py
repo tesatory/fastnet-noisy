@@ -105,7 +105,11 @@ class WeightedLayer(Layer):
 
   def _init_weights(self, weight_shape, bias_shape):
     if self.weight is None:
-      self.weight = gpuarray.to_gpu(randn(weight_shape, np.float32) * self.initW)
+      if self.name == 'noise':
+        assert(weight_shape[0] == weight_shape[1])
+        self.weight = gpuarray.to_gpu(np.eye(weight_shape[0], dtype = np.float32))
+      else:
+        self.weight = gpuarray.to_gpu(randn(weight_shape, np.float32) * self.initW)
 
     if self.bias is None:
       if self.initB > 0.0:
@@ -492,12 +496,12 @@ class SoftmaxLayer(Layer):
 
   def dump(self):
     d = Layer.dump(self)
-    del d['softmax']
+    del d['cost']
     return d
 
 class CostLayer(Layer):
   def __init__(self, name, disableBprop = False):
-    Layer.__init__(self, name, "costlayer", disableBprop)
+    Layer.__init__(self, name, "cost", disableBprop)
     self.batchCorrect = 0
 
   def attach(self, prev_layer):
