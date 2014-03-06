@@ -10,8 +10,6 @@ from pycuda.gpuarray import GPUArray
 import numpy as np
 import sys
 import time
-import data_loader
-import cuda_kernel
 
 class FastNetIterator:
   def __init__(self, layers):

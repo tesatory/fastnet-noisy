@@ -20,10 +20,11 @@ def copy_to_gpu(data):
 
 
 class BatchData(object):
-  def __init__(self, data, labels, epoch):
+  def __init__(self, data, labels, epoch, batch_index = 0):
     self.data = data
     self.labels = labels
     self.epoch = epoch
+    self.batch_index = batch_index
 
 
 class DataProvider(object):
@@ -105,7 +106,13 @@ class ImageNetDataProvider(DataProvider):
     batch_dict = dict((k, k) for k in self.batch_range)
 
     for d in cat_dirs:
-      imgs = [v for i, v in enumerate(glob.glob(d + '/*.JPEG')) if i in batch_dict] # jpg -> JPEG by Sainaa
+      img_files = list()
+      img_files.extend(glob.glob(d + '/*.jpg'))
+      img_files.extend(glob.glob(d + '/*.jpeg'))
+      img_files.extend(glob.glob(d + '/*.JPG'))
+      img_files.extend(glob.glob(d + '/*.JPEG'))
+      img_files.sort()
+      imgs = [v for i, v in enumerate(img_files) if i in batch_dict]
     
       self.images.extend(imgs)
 
@@ -188,7 +195,7 @@ class ImageNetDataProvider(DataProvider):
     #         num_imgs, time.time() - start, load_time, align_time)
     # self.data = {'data' : SharedArray(cropped), 'labels' : SharedArray(labels)}
 
-    return BatchData(cropped, labels, epoch)
+    return BatchData(cropped, labels, epoch, self.curr_batch_index)
 
   # Returns the dimensionality of the two data matrices returned by get_next_batch
   # idx is the index of the matrix.
@@ -307,6 +314,7 @@ class ParallelDataProvider(DataProvider):
     self._data_queue = Queue.Queue(1)
     self._gpu_batch = None
     self.index = 0
+    self.curr_epoch = 1
 
   def _fill_reserved_data(self):
     batch_data = self._data_queue.get()
@@ -346,30 +354,39 @@ class ParallelDataProvider(DataProvider):
       gpu_partial_copy_to(gpu_data, data, 0, height, self.index, self.index + batch_size)
       #labels = gpu_labels[self.index:self.index + batch_size]
       self.index += batch_size
-    return BatchData(data, labels, self._gpu_batch.epoch)
+    return BatchData(data, labels, self._gpu_batch.epoch, self._gpu_batch.batch_index)
 
 class NoisyDataProvider(DataProvider):
   def __init__(self, dp_clear, dp_noisy):
-    self.dp_noisy = dp_clear
+    self.dp_clear = dp_clear
+    self.dp_noisy = dp_noisy
     self.reset()
 
   def reset(self):
+    self.batch_index_clear = 0
+    self.batch_index_noisy = 0
     self.dp_clear.reset()
     self.dp_noisy.reset()
 
   def get_next_batch(self, batch_size):
-    pos1 = self.dp_clear.dp.curr_batch_index + 1.0 * self.dp_clear.index / self.dp_clear.dp.batch_size
-    pos1 /= self.dp_clear.dp.get_batch_num()
-    pos1 += self.dp_clear.dp.curr_epoch
-    pos2 = self.dp_noisy.dp.curr_batch_index + 1.0 * self.dp_noisy.index / self.dp_noisy.dp.batch_size
-    pos2 /= self.dp_noisy.dp.get_batch_num()
-    pos2 += self.dp_noisy.dp.curr_epoch
+    pos1 = self.batch_index_clear + 1.0 * self.dp_clear.index / self.dp_clear.dp.batch_size
+    pos1 = 1.0 * pos1 / self.dp_clear.dp.get_batch_num()
+    pos1 += self.dp_clear.curr_epoch
+    pos2 = self.batch_index_noisy + 1.0 * self.dp_noisy.index / self.dp_noisy.dp.batch_size
+    pos2 = 1.0 * pos2 / self.dp_noisy.dp.get_batch_num()
+    pos2 += self.dp_noisy.curr_epoch
+    print self.dp_clear.index, self.batch_index_clear, self.dp_clear.curr_epoch, pos1
+    print self.dp_noisy.index, self.batch_index_noisy, self.dp_noisy.curr_epoch, pos2
     if pos1 < pos2:
       self.is_curr_batch_noisy = False
-      return self.dp_clear.get_next_batch(batch_size)
+      batch = self.dp_clear.get_next_batch(batch_size)
+      self.batch_index_clear = batch.batch_index - 1
     else:
       self.is_curr_batch_noisy = True
-      return self.dp_noisy.get_next_batch(batch_size)
+      batch = self.dp_noisy.get_next_batch(batch_size)
+      self.batch_index_noisy = batch.batch_index - 1
+    print self.is_curr_batch_noisy
+    return batch
 
 dp_dict = {}
 def register_data_provider(name, _class):
