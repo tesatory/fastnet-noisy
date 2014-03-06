@@ -304,6 +304,8 @@ class Trainer:
 
     start_epoch = self.curr_epoch
 
+    clear_w = gpuarray.to_gpu(np.eye(self.net.layers[-2].weight.shape[0], dtype = np.float32))
+
     while (self.curr_epoch - start_epoch <= num_epochs and 
           self.should_continue_training()):
       batch_start = time.time()
@@ -312,13 +314,29 @@ class Trainer:
       self.curr_batch += 1
 
       input, label = train_data.data, train_data.labels
+
+      if self.train_dp.is_curr_batch_noisy == False:
+        assert(self.net.layers[-2].name == 'noise')
+        noisy_eps = self.net.layers[-2].epsW
+        self.net.layers[-2].epsW = 0
+        noisy_w = self.net.layers[-2].weight
+        self.net.layers[-2].weight = clear_w
+
       self.net.train_batch(input, label)
+
+      if self.train_dp.is_curr_batch_noisy == False:
+        self.net.layers[-2].epsW = noisy_eps
+        self.net.layers[-2].weight = noisy_w
+
       cost , correct, numCase = self.net.get_batch_information()
       self.train_outputs += [({'logprob': [cost, 1 - correct]}, numCase, self.elapsed())]
       print >> sys.stderr, '%d.%d: error: %f logreg: %f time: %f' % (self.curr_epoch, self.curr_batch, 1 - correct, cost, time.time() - batch_start)
 
       if self.check_test_data():
+        noisy_w = self.net.layers[-2].weight
+        self.net.layers[-2].weight = clear_w
         self.get_test_error()
+        self.net.layers[-2].weight = noisy_w
 
       if self.factor != 1.0 and self.check_adjust_lr():
         self.adjust_lr()

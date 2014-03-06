@@ -69,6 +69,17 @@ class DataLayer(Layer):
     return tuple(list(self.image_shape[:3]) + [self.batchSize]) 
   
 
+def prob_project(x):
+    x = x.copy()
+    pos = np.array([True] * x.shape[0])
+    eps = 0.0001
+    while abs(x.sum() - 1) > eps:
+        r = x.sum() - 1
+        x[pos] -= r / pos.sum()
+        pos = x > 0
+        x[~pos] = 0
+    return x
+
 class WeightedLayer(Layer):
   def __init__(self, name, type, epsW, epsB, initW, initB, momW, momB, wc, weight, bias,
       weightIncr , biasIncr, disableBprop = False):
@@ -167,6 +178,11 @@ class WeightedLayer(Layer):
       #self.bias += self.biasGrad * self.epsB / self.batchSize
       matrix_add(self.bias, self.biasGrad, alpha = 1, beta = self.epsB / F(self.batchSize))
 
+    if self.epsW > 0 and self.name == 'noise':
+      w = self.weight.get()
+      for i in range(w.shape[1]):
+        w[:,i] = prob_project(w[:,i])
+      self.weight = gpuarray.to_gpu(w)
 
   def scaleLearningRate(self, l):
     self.epsW *= l
