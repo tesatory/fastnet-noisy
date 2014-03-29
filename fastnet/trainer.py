@@ -321,12 +321,18 @@ class Trainer:
         self.net.layers[-2].epsW = 0
         noisy_w = self.net.layers[-2].weight
         self.net.layers[-2].weight = clear_w
+      else:
+        if hasattr(self, 'noisy_factor'):
+          self.net.adjust_learning_rate(self.noisy_factor)
 
       self.net.train_batch(input, label)
 
       if self.train_dp.is_curr_batch_noisy == False:
         self.net.layers[-2].epsW = noisy_eps
         self.net.layers[-2].weight = noisy_w
+      else:
+        if hasattr(self, 'noisy_factor'):
+          self.net.adjust_learning_rate(1./self.noisy_factor)
 
       cost , correct, numCase = self.net.get_batch_information()
       self.train_outputs += [({'logprob': [cost, 1 - correct]}, numCase, self.elapsed())]
