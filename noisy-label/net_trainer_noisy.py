@@ -130,11 +130,13 @@ def train(net, num_epoch, train_batches, noisy_batches, test_batches, project, l
     M = l.weight.shape[0]
     w_pure = np.zeros(l.weight.shape)
     w_pure[:10,:10] = np.eye(10)
-    w_pure[10,10:] = 1
+    if w_pure.shape[0] > 10:
+        w_pure[10,10:] = 1
     w_pure = data_loader.copy_to_gpu(w_pure)
     w_test = np.zeros(l.weight.shape)
     w_test[:10,:10] = np.eye(10)
-    w_test[:10,10:] = 0.1
+    if w_test.shape[0] > 10:
+        w_test[:10,10:] = 0.1
     w_test = data_loader.copy_to_gpu(w_test)
 
     if hasattr(net, 'stat') == False:
@@ -205,12 +207,12 @@ def train(net, num_epoch, train_batches, noisy_batches, test_batches, project, l
                 noisy_correct += correct * num_case
                 noisy_cost += cost * num_case
 
-            w = data_loader.copy_to_cpu(net.layers[-4].weight)
-            w[10,:] = 0
-            net.layers[-4].weight = data_loader.copy_to_gpu(w)
-            b = data_loader.copy_to_cpu(net.layers[-4].bias)
-            b[10] = 1                        
-            net.layers[-4].bias = data_loader.copy_to_gpu(b)
+            # w = data_loader.copy_to_cpu(net.layers[-4].weight)
+            # w[10,:] = 0
+            # net.layers[-4].weight = data_loader.copy_to_gpu(w)
+            # b = data_loader.copy_to_cpu(net.layers[-4].bias)
+            # b[10] = 1                        
+            # net.layers[-4].bias = data_loader.copy_to_gpu(b)
 
         for batch in test_batches:
             w_noisy = l.weight

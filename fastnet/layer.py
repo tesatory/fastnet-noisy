@@ -80,6 +80,18 @@ def prob_project(x):
         x[~pos] = 0
     return x
 
+def prob_project_off_diag(x, diag_pos):
+    x = x.copy()
+    pos = np.array([True] * x.shape[0])
+    eps = 0.0001
+    while abs(x.sum() - 1) > eps:
+        r = x.sum() - 1
+        pos[diag_pos] = False
+        x[pos] -= r / pos.sum()
+        pos = x > 0
+        x[~pos] = 0
+    return x
+
 class WeightedLayer(Layer):
   def __init__(self, name, type, epsW, epsB, initW, initB, momW, momB, wc, weight, bias,
       weightIncr , biasIncr, disableBprop = False):
@@ -180,8 +192,19 @@ class WeightedLayer(Layer):
 
     if self.epsW > 0 and self.name == 'noise':
       w = self.weight.get()
-      for i in range(w.shape[1]):
-        w[:,i] = prob_project(w[:,i])
+
+      if hasattr(self, 'min_diag'):
+        assert w.shape[0] == w.shape[1]:
+        for i in range(w.shape[1]):
+          if w[i,i] < self.min_diag:
+            w[i,i] = self.min_diag
+            w[:,i] = prob_project_off_diag(w[:,i], i)
+          else:      
+            w[:,i] = prob_project(w[:,i])
+      else:
+        for i in range(w.shape[1]):
+          w[:,i] = prob_project(w[:,i])
+
       self.weight = gpuarray.to_gpu(w)
 
   def scaleLearningRate(self, l):
