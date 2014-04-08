@@ -501,11 +501,12 @@ class FCLayer(WeightedLayer):
     add_row_sum_to_vec(self.biasGrad, grad, alpha=0.0)
 
 
-
 class SoftmaxLayer(Layer):
   def __init__(self, name, disableBprop = False):
     Layer.__init__(self, name, "softmax", disableBprop)
     self.batchCorrect = 0
+    self.alpha = 1.0
+    self.beta = 0.0
 
   def attach(self, prev_layer):
     input_shape = prev_layer.get_output_shape()
@@ -530,33 +531,6 @@ class SoftmaxLayer(Layer):
     if PFout:
       print_matrix(output, self.name)
 
-  def bprop(self, grad, input, output, outGrad):
-    softmax_bprop(output, grad, outGrad)
-
-  def dump(self):
-    d = Layer.dump(self)
-    del d['cost']
-    return d
-
-class CostLayer(Layer):
-  def __init__(self, name, disableBprop = False):
-    Layer.__init__(self, name, "cost", disableBprop)
-    self.batchCorrect = 0
-
-  def attach(self, prev_layer):
-    input_shape = prev_layer.get_output_shape()
-    self.inputSize, self.batchSize = int(np.prod(input_shape[0:3])), input_shape[3]
-    self.outputSize = self.inputSize
-    self.inputShape = input_shape
-    self.cost = gpuarray.zeros((self.batchSize, 1), dtype=np.float32)
-
-  def get_output_shape(self):
-    self.outputShape = (self.outputSize, 1, 1, self.batchSize)
-    return self.outputShape
-
-  def fprop(self, input, output, train=TRAIN):
-    gpu_copy_to(input, output)
-
   def logreg_cost(self, label, output):
     if self.cost.shape[0] !=  self.batchSize:
       self.cost = gpuarray.zeros((self.batchSize, 1), dtype=np.float32)
@@ -566,8 +540,8 @@ class CostLayer(Layer):
     logreg_cost_col_reduce(output, label, self.cost)
 
   def bprop(self, label, input, output, outGrad):
-    cost_bprop(output, label, outGrad)
-    
+    softmax_bprop(output, label, outGrad, self.alpha, self.beta)
+
 
   def get_correct(self):
     return  1.0 * self.batchCorrect / self.batchSize

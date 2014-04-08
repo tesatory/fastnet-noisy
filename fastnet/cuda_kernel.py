@@ -391,22 +391,7 @@ _logreg_cost_col_reduce_ = CompiledSource('''
 _softmax_bprop_ = CompiledSource(
       '''
       __global__
-      void softmax_bprop_grad(float* output, float* grad, float* outGrad, int leading, int rows, int cols){
-        int i = blockDim.x * blockIdx.x + threadIdx.x;
-        int j = blockDim.y * blockIdx.y + threadIdx.y;
-
-        int idx= i + j * leading;
-        if( i >= cols) return;
-        if( j >= rows) return;
-
-        outGrad[idx] = output[idx] * (grad[idx] - 1);
-      }
-      ''', 'softmax_bprop_grad')
-
-_cost_bprop_ = CompiledSource(
-      '''
-      __global__
-      void cost_bprop_grad(float* mat, float* label, float* grad, int leading, int rows, int cols){
+      void softmax_bprop_grad(float* mat, float* label, float* grad, float alpha, float beta, int leading, int rows, int cols){
         int i = blockDim.x * blockIdx.x + threadIdx.x;
         int j = blockDim.y * blockIdx.y + threadIdx.y;
 
@@ -415,11 +400,12 @@ _cost_bprop_ = CompiledSource(
         if( j >= rows) return;
 
         if(j == label[i])
-          grad[idx] = 1./(mat[idx] + 0.00000001);
+          grad[idx] = alpha - mat[idx];
         else
-          grad[idx] = 0;
+          grad[idx] = beta - mat[idx];
       }
-      ''', 'cost_bprop_grad')
+      ''', 'softmax_bprop_grad')
+
 
 _relu_activate_ = CompiledSource('''
   __global__
@@ -823,29 +809,19 @@ def logreg_cost_col_reduce(mat, label, cost):
   _logreg_cost_col_reduce_(mat, label, cost, np.int32(mat.strides[0] / 4), block=block, grid=grid)
   timer.end('logreg_cost_to_col_reduce')
 
-def softmax_bprop(output, grad, outGrad):
-  timer.start()
-  mh, mw = output.shape
-  vh, vw = grad.shape
 
-  assert(vh == mh and vw == mw)
-
-  block = (32, 32, 1)
-  grid = (divup(mw, 32), divup(mh, 32))
-  _softmax_bprop_(output, grad, outGrad, I(output.strides[0] / 4), I(mh), I(mw), block=block, grid=grid)
-  timer.end('softmax_bprop')
-
-def cost_bprop(mat, label, grad):
+def softmax_bprop(mat, label, grad, alpha, beta):
   timer.start()
   mh, mw = mat.shape
   vh, vw = label.shape
 
-  assert(vh == 1 and vw == mw or vw == 1 and vh == mw)
-  
+  assert((vh == 1 and vw == mw) or (vw == 1 and vh == mw)), (vh, vw, mw)
+
   block = (32, 32, 1)
   grid = (divup(mw, 32), divup(mh, 32))
-  _cost_bprop_(mat, label, grad, I(mat.strides[0] / 4), I(mh), I(mw), block=block, grid=grid)
-  timer.end('cost_bprop')
+  _softmax_bprop_(mat, label, grad, F(alpha), F(beta), I(mat.strides[0] / 4), I(mh), I(mw), block=block, grid=grid)
+  timer.end('softmax_bprop')
+
 
 def relu_activate(input, output, e):
   timer.start()

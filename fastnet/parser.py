@@ -1,6 +1,6 @@
 from fastnet.layer import ConvLayer, MaxPoolLayer, AvgPoolLayer, \
   CrossMapResponseNormLayer, SoftmaxLayer, NeuronLayer, ResponseNormLayer, FCLayer, \
-  DataLayer, CostLayer
+  DataLayer
 from fastnet.util import isfloat
 import numpy as np
 import os
@@ -52,7 +52,6 @@ class Builder(object):
     elif ld['type'] == 'neuron': return self.neuron_layer(ld)
     elif ld['type'] == 'fc': return self.fc_layer(ld)
     elif ld['type'] == 'softmax': return self.softmax_layer(ld)
-    elif ld['type'] == 'cost': return self.cost_layer(ld)
     elif ld['type'] == 'rnorm': return self.rnorm_layer(ld)
     elif ld['type'] == 'cmrnorm': return self.crm_layer(ld)
     else:
@@ -112,11 +111,6 @@ class FastNetBuilder(Builder):
     name = Builder.set_val(ld, 'name')
     disableBprop = Builder.set_val(ld, 'disableBprop', default = False)
     return SoftmaxLayer(name, disableBprop = disableBprop)
-
-  def cost_layer(self, ld):
-    name = Builder.set_val(ld, 'name')
-    disableBprop = Builder.set_val(ld, 'disableBprop', default = False)
-    return CostLayer(name, disableBprop = disableBprop)
 
   def neuron_layer(self, ld):
     name = Builder.set_val(ld, 'name')
