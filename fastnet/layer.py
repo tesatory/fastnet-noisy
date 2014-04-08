@@ -194,7 +194,7 @@ class WeightedLayer(Layer):
       w = self.weight.get()
 
       if hasattr(self, 'min_diag'):
-        assert w.shape[0] == w.shape[1]:
+        assert w.shape[0] == w.shape[1]
         for i in range(w.shape[1]):
           if w[i,i] < self.min_diag:
             w[i,i] = self.min_diag
