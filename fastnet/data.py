@@ -209,6 +209,11 @@ class ImageNetDataProvider(DataProvider):
 
 class CifarDataProvider(DataProvider):
   BATCH_REGEX = re.compile('^data_batch_(\d+)$')
+
+  def __init__(self, data_dir, batch_range):
+    DataProvider.__init__(self, data_dir, batch_range)
+    self.batch_size = 10000
+
   def get_next_batch(self):
     self.get_next_index()
     filename = os.path.join(self.data_dir, 'data_batch_%d' % self.curr_batch)
@@ -217,7 +222,7 @@ class CifarDataProvider(DataProvider):
     img = data['data'] - self.batch_meta['data_mean']
     return BatchData(np.require(img, requirements='C', dtype=np.float32),
                      np.array(data['labels']),
-                     self.curr_epoch)
+                     self.curr_epoch, self.curr_batch_index)
 
   def get_batch_indexes(self):
     names = self.get_batch_filenames()
@@ -376,12 +381,12 @@ class NoisyDataProvider(DataProvider):
     pos2 = 1.0 * pos2 / self.dp_noisy.dp.get_batch_num()
     pos2 += self.dp_noisy.curr_epoch
     if pos1 < pos2:
-      print 'clear batch', self.dp_clear.index, self.batch_index_clear, self.dp_clear.curr_epoch, pos1
+      # print 'clear batch', self.dp_clear.index, self.batch_index_clear, self.dp_clear.curr_epoch, pos1
       self.is_curr_batch_noisy = False
       batch = self.dp_clear.get_next_batch(batch_size)
       self.batch_index_clear = batch.batch_index - 1
     else:
-      print 'noisy batch', self.dp_noisy.index, self.batch_index_noisy, self.dp_noisy.curr_epoch, pos2
+      # print 'noisy batch', self.dp_noisy.index, self.batch_index_noisy, self.dp_noisy.curr_epoch, pos2
       self.is_curr_batch_noisy = True
       batch = self.dp_noisy.get_next_batch(batch_size)
       self.batch_index_noisy = batch.batch_index - 1

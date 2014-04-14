@@ -313,7 +313,9 @@ class Trainer:
 
       input, label = train_data.data, train_data.labels
 
-      if self.train_dp.is_curr_batch_noisy == False:
+      if hasattr(self.train_dp, 'is_curr_batch_noisy') == False:
+        self.net.train_batch(input, label)
+      elif self.train_dp.is_curr_batch_noisy == False:
         self.net.layers[-1].alpha = 1.0
         self.net.layers[-1].beta = 0.0
         self.net.train_batch(input, label)
@@ -350,6 +352,10 @@ class Trainer:
     self.print_net_summary()
     util.log('Starting predict...')
     save_output = []
+
+    total_cost = 0
+    total_correct = 0
+    total_numcase = 0
     while self.curr_epoch < 2:
       start = time.time()
       test_data = self.test_dp.get_next_batch(self.batch_size)
@@ -357,11 +363,15 @@ class Trainer:
       input, label = test_data.data, test_data.labels
       self.net.train_batch(input, label, TEST)
       cost , correct, numCase = self.net.get_batch_information()
-      self.curr_epoch = self.test_data.epoch
+      self.curr_epoch = test_data.epoch
       self.curr_batch += 1
       print >> sys.stderr, '%d.%d: error: %f logreg: %f time: %f' % (self.curr_epoch, self.curr_batch, 1 - correct, cost, time.time() - start)
       if save_layers is not None:
         save_output.extend(self.net.get_save_output())
+
+      total_cost += cost * numCase
+      total_correct += correct * numCase
+      total_numcase += numCase
 
     if save_layers is not None:
       if filename is not None:
@@ -369,6 +379,10 @@ class Trainer:
           cPickle.dump(save_output, f, protocol=-1)
         util.log('save layer output finished')
 
+    total_cost /= total_numcase
+    total_correct /= total_numcase
+    print >> sys.stderr, '---- test ----'
+    print >> sys.stderr, 'error: %f logreg: %f' % (1 - total_correct, total_cost)
 
   def report(self):
     rep = self.net.get_report()
