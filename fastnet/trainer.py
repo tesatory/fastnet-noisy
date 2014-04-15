@@ -360,6 +360,10 @@ class Trainer:
     self.print_net_summary()
     util.log('Starting predict...')
     save_output = []
+
+    total_cost = 0
+    total_correct = 0
+    total_numcase = 0
     while self.curr_epoch < 2:
       start = time.time()
       test_data = self.test_dp.get_next_batch(self.batch_size)
@@ -373,11 +377,20 @@ class Trainer:
       if save_layers is not None:
         save_output.extend(self.net.get_save_output())
 
+      total_cost += cost * numCase
+      total_correct += correct * numCase
+      total_numcase += numCase
+
     if save_layers is not None:
       if filename is not None:
         with open(filename, 'w') as f:
           cPickle.dump(save_output, f, protocol=-1)
         util.log('save layer output finished')
+
+    total_cost /= total_numcase
+    total_correct /= total_numcase
+    print >> sys.stderr, '---- test ----'
+    print >> sys.stderr, 'error: %f logreg: %f' % (1 - total_correct, total_cost)
 
 
   def report(self):
