@@ -371,7 +371,7 @@ class Trainer:
       input, label = test_data.data, test_data.labels
       self.net.train_batch(input, label, TEST)
       cost , correct, numCase = self.net.get_batch_information()
-      self.curr_epoch = self.test_data.epoch
+      self.curr_epoch = test_data.epoch
       self.curr_batch += 1
       print >> sys.stderr, '%d.%d: error: %f logreg: %f time: %f' % (self.curr_epoch, self.curr_batch, 1 - correct, cost, time.time() - start)
       if save_layers is not None:
