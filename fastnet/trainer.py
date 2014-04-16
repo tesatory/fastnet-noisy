@@ -430,6 +430,9 @@ class Trainer:
         self.net.train_batch(input, label, TEST)
         self.curr_epoch = test_data.epoch
 
+        print label.get()[:10]
+        self.curr_epoch = 2
+        
         if self.curr_batch < len(outputs):
           outputs[self.curr_batch] += self.net.output.get()
         else:
