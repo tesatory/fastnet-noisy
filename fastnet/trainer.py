@@ -363,6 +363,7 @@ class Trainer:
 
     total_cost = 0
     total_correct = 0
+    total_correct_top5 = 0
     total_numcase = 0
     while self.curr_epoch < 2:
       start = time.time()
@@ -380,6 +381,7 @@ class Trainer:
       total_cost += cost * numCase
       total_correct += correct * numCase
       total_numcase += numCase
+      total_correct_top5 += self.net.layers[-1].get_correct_top5(label, self.net.output)
 
     if save_layers is not None:
       if filename is not None:
@@ -389,8 +391,10 @@ class Trainer:
 
     total_cost /= total_numcase
     total_correct /= total_numcase
+    total_correct_top5 /= total_numcase
     print >> sys.stderr, '---- test ----'
     print >> sys.stderr, 'error: %f logreg: %f' % (1 - total_correct, total_cost)
+    print >> sys.stderr, 'top 5 error: %f' % (1 - total_correct_top5)
 
 
   def report(self):
