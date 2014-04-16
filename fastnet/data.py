@@ -32,6 +32,7 @@ class DataProvider(object):
     self.data_dir = data_dir
     self.meta_file = os.path.join(data_dir, 'batches.meta')
 
+    self.multiview = 0
     self.curr_batch_index = 0
     self.curr_batch = None
     self.curr_epoch = 1
@@ -58,7 +59,8 @@ class DataProvider(object):
   def get_next_index(self):
     self.curr_batch_index = self.curr_batch_index + 1
     if self.curr_batch_index == len(self.batch_range) + 1:
-      random.shuffle(self.batch_range)
+      if self.multiview == 0:
+        random.shuffle(self.batch_range)
       self.curr_epoch += 1
       self.curr_batch_index = 1
     self.curr_batch = self.batch_range[self.curr_batch_index - 1]
