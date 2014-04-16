@@ -423,6 +423,7 @@ class Trainer:
       self.test_dp.reset()
       self.curr_batch = 0
       self.test_dp.dp.multiview = view_id + 1
+      self.curr_epoch = 1
       while self.curr_epoch < 2:
         test_data = self.test_dp.get_next_batch(self.batch_size)
         input, label = test_data.data, test_data.labels
