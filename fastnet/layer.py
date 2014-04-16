@@ -565,7 +565,7 @@ class CostLayer(Layer):
     self.batchCorrect = same_reduce(label , maxid)
     logreg_cost_col_reduce(output, label, self.cost)
 
-  def get_correct_top5(self, label, output)
+  def get_correct_top5(self, label, output):
     output = output.get()
     if isinstance(label, GPUArray):
       label = label.get()
