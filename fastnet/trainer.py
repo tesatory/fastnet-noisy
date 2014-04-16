@@ -441,7 +441,7 @@ class Trainer:
 
         self.curr_batch += 1
 
-      print >> sys.strerr, 'view: %d, batches: %d' % (view_id, self.curr_batch)
+      print >> sys.stderr, 'view: %d, batches: %d' % (view_id, self.curr_batch)
 
     total_correct /= total_numcase
     total_correct_top5 /= total_numcase
