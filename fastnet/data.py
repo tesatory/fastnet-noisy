@@ -54,7 +54,8 @@ class DataProvider(object):
     self.curr_batch_index = 0
     self.curr_batch = None
     self.curr_epoch = 1
-    random.shuffle(self.batch_range)
+    if self.multiview == 0:
+      random.shuffle(self.batch_range)
 
   def get_next_index(self):
     self.curr_batch_index = self.curr_batch_index + 1
