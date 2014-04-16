@@ -140,12 +140,26 @@ class ImageNetDataProvider(DataProvider):
 
   def __trim_borders(self, images, target):
     for idx, img in enumerate(images):
-      startY, startX = np.random.randint(0, self.border_size * 2 + 1), np.random.randint(0, self.border_size * 2 + 1)
-        #startY, startX = 0, 0
+      if self.multiview == 0:
+        startY, startX = np.random.randint(0, self.border_size * 2 + 1), np.random.randint(0, self.border_size * 2 + 1)
+      elif self.multiview in (1, 6):
+        startY, startX = 0, 0
+      elif self.multiview in (2, 7):
+        startY, startX = 0, 2 * self.border_size
+      elif self.multiview in (3, 8):
+        startY, startX = 2 * self.border_size, 0
+      elif self.multiview in (4, 9):
+        startY, startX = 2 * self.border_size, 2 * self.border_size
+      elif self.multiview in (5, 10):
+        startY, startX = self.border_size, self.border_size
+
       endY, endX = startY + self.inner_size, startX + self.inner_size
       pic = img[:, startY:endY, startX:endX]
-      if np.random.randint(2) == 0:  # also flip the image with 50% probability
-        pic = pic[:, :, ::-1]
+      if self.multiview == 0:
+        if np.random.randint(2) == 0:  # also flip the image with 50% probability
+          pic = pic[:, :, ::-1]
+      elif self.multiview in (6, 7, 8, 9, 10):
+        pic = pic[:, :, ::-1]        
       target[:, idx] = pic.reshape((self.get_data_dims(),))
 
   def get_next_batch(self):

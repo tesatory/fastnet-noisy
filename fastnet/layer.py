@@ -564,19 +564,6 @@ class CostLayer(Layer):
     find_col_max_id(maxid, output)
     self.batchCorrect = same_reduce(label , maxid)
     logreg_cost_col_reduce(output, label, self.cost)
-
-  def get_correct_top5(self, label, output):
-    output = output.get()
-    if isinstance(label, GPUArray):
-      label = label.get()
-    label = label.ravel().astype(np.int32)
-    batchCorrectTop5 = 0
-    for n in range(5):
-      maxid = output.argmax(axis=0).ravel().astype(np.int32)
-      batchCorrectTop5 += float(np.count_nonzero(label == maxid))
-      for i in xrange(output.shape[1]):
-        output[maxid[i],i] = -1
-    return batchCorrectTop5
     
   def bprop(self, label, input, output, outGrad):
     cost_bprop(output, label, outGrad)

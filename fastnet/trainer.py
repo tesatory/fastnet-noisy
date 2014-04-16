@@ -363,7 +363,6 @@ class Trainer:
 
     total_cost = 0
     total_correct = 0
-    total_correct_top5 = 0
     total_numcase = 0
     while self.curr_epoch < 2:
       start = time.time()
@@ -381,7 +380,6 @@ class Trainer:
       total_cost += cost * numCase
       total_correct += correct * numCase
       total_numcase += numCase
-      total_correct_top5 += self.net.layers[-1].get_correct_top5(label, self.net.output)
 
     if save_layers is not None:
       if filename is not None:
@@ -391,11 +389,64 @@ class Trainer:
 
     total_cost /= total_numcase
     total_correct /= total_numcase
-    total_correct_top5 /= total_numcase
     print >> sys.stderr, '---- test ----'
     print >> sys.stderr, 'error: %f logreg: %f' % (1 - total_correct, total_cost)
-    print >> sys.stderr, 'top 5 error: %f' % (1 - total_correct_top5)
 
+  def get_correct_topK(self, label, output, K):
+    if isinstance(output, GPUArray):
+      output = output.get()
+    if isinstance(label, GPUArray):
+      label = label.get()
+    label = label.ravel().astype(np.int32)
+    batchCorrectTopK = 0
+    for n in range(K):
+      maxid = output.argmax(axis=0).ravel().astype(np.int32)
+      batchCorrectTopK += float(np.count_nonzero(label == maxid))
+      if n < K - 1:
+        for i in xrange(output.shape[1]):
+          output[maxid[i],i] = -1
+    return batchCorrectTopK
+
+  def predict_multiview(self, save_layers=None, filename=None):
+    self.net.save_layerouput(save_layers)
+    self.print_net_summary()
+    util.log('Starting predict...')
+    save_output = []
+
+    total_correct = 0
+    total_correct_top5 = 0
+    total_numcase = 0
+
+    view_num = 10
+    outputs = list()
+    for view_id in xrange(view_num):
+      self.test_dp.reset()
+      self.curr_batch = 0
+      self.test_dp.dp.multiview = view_id + 1
+      while self.curr_epoch < 2:
+        test_data = self.test_dp.get_next_batch(self.batch_size)
+        input, label = test_data.data, test_data.labels
+        self.net.train_batch(input, label, TEST)
+        self.curr_epoch = test_data.epoch
+
+        if self.curr_batch < len(outputs):
+          outputs[self.curr_batch] += self.net.output.get()
+        else:
+          outputs.append(self.net.output.get())
+
+        if view_id == view_num - 1:
+          total_numcase += outputs[self.curr_batch].shape[1]
+          total_correct += self.get_correct_topK(label, outputs[self.curr_batch], 1)
+          total_correct_top5 += self.get_correct_topK(label, outputs[self.curr_batch], 5)
+
+        self.curr_batch += 1
+
+      print >> sys.strerr, 'view: %d, batches: %d' % (view_id, self.curr_batch)
+
+    total_correct /= total_numcase
+    total_correct_top5 /= total_numcase
+    print >> sys.stderr, '---- test ----'
+    print >> sys.stderr, 'top 1 error: %f | top 5 error: %f' % (1 - total_correct, 1 - total_correct_top5)
 
   def report(self):
     rep = self.net.get_report()
