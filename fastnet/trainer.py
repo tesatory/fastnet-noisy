@@ -393,9 +393,9 @@ class Trainer:
     print >> sys.stderr, 'error: %f logreg: %f' % (1 - total_correct, total_cost)
 
   def get_correct_topK(self, label, output, K):
-    if isinstance(output, GPUArray):
+    if isinstance(output, gpuarray):
       output = output.get()
-    if isinstance(label, GPUArray):
+    if isinstance(label, gpuarray):
       label = label.get()
     label = label.ravel().astype(np.int32)
     batchCorrectTopK = 0
