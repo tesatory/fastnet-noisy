@@ -5,6 +5,7 @@ from fastnet.parser import parse_config_file
 from fastnet.scheduler import Scheduler
 from fastnet.util import divup, timer, load
 from pycuda import gpuarray, driver
+from pycuda.gpuarray import GPUArray
 import argparse
 import cPickle
 import glob
@@ -393,9 +394,9 @@ class Trainer:
     print >> sys.stderr, 'error: %f logreg: %f' % (1 - total_correct, total_cost)
 
   def get_correct_topK(self, label, output, K):
-    if isinstance(output, gpuarray):
+    if isinstance(output, GPUArray):
       output = output.get()
-    if isinstance(label, gpuarray):
+    if isinstance(label, GPUArray):
       label = label.get()
     label = label.ravel().astype(np.int32)
     batchCorrectTopK = 0
