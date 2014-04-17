@@ -146,15 +146,15 @@ class ImageNetDataProvider(DataProvider):
       if self.multiview == 0:
         startY, startX = np.random.randint(0, self.border_size * 2 + 1), np.random.randint(0, self.border_size * 2 + 1)
       elif self.multiview in (1, 6):
-        startY, startX = 0, 0
-      elif self.multiview in (2, 7):
-        startY, startX = 0, 2 * self.border_size
-      elif self.multiview in (3, 8):
-        startY, startX = 2 * self.border_size, 0
-      elif self.multiview in (4, 9):
-        startY, startX = 2 * self.border_size, 2 * self.border_size
-      elif self.multiview in (5, 10):
         startY, startX = self.border_size, self.border_size
+      elif self.multiview in (2, 7):
+        startY, startX = 0, 0
+      elif self.multiview in (3, 8):
+        startY, startX = 0, 2 * self.border_size
+      elif self.multiview in (4, 9):
+        startY, startX = 2 * self.border_size, 0
+      elif self.multiview in (5, 10):
+        startY, startX = 2 * self.border_size, 2 * self.border_size
 
       endY, endX = startY + self.inner_size, startX + self.inner_size
       pic = img[:, startY:endY, startX:endX]

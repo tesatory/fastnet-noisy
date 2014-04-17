@@ -408,17 +408,11 @@ class Trainer:
           output[maxid[i],i] = -1
     return batchCorrectTopK
 
-  def predict_multiview(self, save_layers=None, filename=None):
-    self.net.save_layerouput(save_layers)
-    self.print_net_summary()
-    util.log('Starting predict...')
-    save_output = []
-
+  def predict_multiview(self, view_num = 10):
     total_correct = 0
     total_correct_top5 = 0
     total_numcase = 0
 
-    view_num = 10
     outputs = list()
     for view_id in xrange(view_num):
       self.test_dp.dp.multiview = view_id + 1
