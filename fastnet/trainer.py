@@ -365,6 +365,12 @@ class Trainer:
     total_cost = 0
     total_correct = 0
     total_numcase = 0
+
+    if self.net.layers[-2].name == 'noise':
+      clear_w = gpuarray.to_gpu(np.eye(self.net.layers[-2].weight.shape[0], dtype = np.float32))
+      noisy_w = self.net.layers[-2].weight
+      self.net.layers[-2].weight = clear_w
+
     while self.curr_epoch < 2:
       start = time.time()
       test_data = self.test_dp.get_next_batch(self.batch_size)
@@ -381,6 +387,9 @@ class Trainer:
       total_cost += cost * numCase
       total_correct += correct * numCase
       total_numcase += numCase
+
+    if self.net.layers[-2].name == 'noise':
+      self.net.layers[-2].weight = noisy_w
 
     if save_layers is not None:
       if filename is not None:
@@ -413,6 +422,11 @@ class Trainer:
     total_correct_top5 = 0
     total_numcase = 0
 
+    if self.net.layers[-2].name == 'noise':
+      clear_w = gpuarray.to_gpu(np.eye(self.net.layers[-2].weight.shape[0], dtype = np.float32))
+      noisy_w = self.net.layers[-2].weight
+      self.net.layers[-2].weight = clear_w
+
     outputs = list()
     for view_id in xrange(view_num):
       self.test_dp.dp.multiview = view_id + 1
@@ -438,6 +452,9 @@ class Trainer:
         self.curr_batch += 1
 
       print >> sys.stderr, 'view: %d, batches: %d' % (view_id, self.curr_batch)
+
+    if self.net.layers[-2].name == 'noise':
+      self.net.layers[-2].weight = noisy_w
 
     total_correct /= total_numcase
     total_correct_top5 /= total_numcase

@@ -141,6 +141,17 @@ class ImageNetDataProvider(DataProvider):
         .reshape((self.get_data_dims(), 1)))
 
 
+  def labels_add_noise(self, W):
+    self.noisy_labels = dict()
+    N = W.shape[0]
+    for idx, filename in enumerate(self.images):
+      filename = os.path.basename(filename)
+      synid = filename[1:].split('_')[0]
+      label = self.batch_meta['synid_to_label'][synid]
+      r = n.random.multinomial(1, W[:,int(label)])
+      label = (r * range(N)).sum()
+      self.noisy_labels[filename] = label
+
   def __trim_borders(self, images, target):
     for idx, img in enumerate(images):
       if self.multiview == 0:
@@ -190,12 +201,17 @@ class ImageNetDataProvider(DataProvider):
     load_time = time.time() - st
 
     clabel = []
-    # extract label from the filename
-    for idx, filename in enumerate(names):
-      filename = os.path.basename(filename)
-      synid = filename[1:].split('_')[0]
-      label = self.batch_meta['synid_to_label'][synid]
-      labels[0, idx] = label
+    if hasattr(self, 'noisy_labels'):
+      for idx, filename in enumerate(names):
+        filename = os.path.basename(filename)
+        labels[0, idx] = self.noisy_labels[filename]
+    else:
+      # extract label from the filename
+      for idx, filename in enumerate(names):
+        filename = os.path.basename(filename)
+        synid = filename[1:].split('_')[0]
+        label = self.batch_meta['synid_to_label'][synid]
+        labels[0, idx] = label
 
     st = time.time()
     cropped = cropped.astype(np.single)

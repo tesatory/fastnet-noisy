@@ -257,9 +257,9 @@ class FastNet(object):
 
     if train == TRAIN:
       self.bprop(data, label, self.output)
-      # x = data_loader.copy_to_cpu(self.layers[-2].weightGrad)
-      # x = np.minimum(x, 1000)
-      # self.layers[-2].weightGrad = data_loader.copy_to_gpu(x)
+      x = self.layers[-2].weightGrad.get()
+      x = np.minimum(x, 1000)
+      self.layers[-2].weightGrad.set(x)
       self.update()
 
     # make sure we have everything finished before returning!

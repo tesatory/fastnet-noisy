@@ -44,7 +44,7 @@ class Layer(object):
     return d
 
 def randn(shape, dtype):
-  np.random.seed(0)
+  # np.random.seed(0)
   return np.require(np.random.randn(*shape), dtype=dtype, requirements='C')
   #return np.random.randn(*shape).astype(dtype)
   
