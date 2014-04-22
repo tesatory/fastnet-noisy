@@ -148,7 +148,7 @@ class ImageNetDataProvider(DataProvider):
       filename = os.path.basename(filename)
       synid = filename[1:].split('_')[0]
       label = self.batch_meta['synid_to_label'][synid]
-      r = n.random.multinomial(1, W[:,int(label)])
+      r = np.random.multinomial(1, W[:,int(label)])
       label = (r * range(N)).sum()
       self.noisy_labels[filename] = label
 

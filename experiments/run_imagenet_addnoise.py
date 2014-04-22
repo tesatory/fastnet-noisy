@@ -5,8 +5,9 @@ This test is for naive trainer to traine a full imagenet model
 
 from fastnet import data, trainer, net, parser
 import os.path
-import cPickel
+import cPickle
 import sys
+import numpy as np
 
 test_id = 'addnoise'
 
