@@ -9,7 +9,7 @@ import cPickle
 import sys
 import numpy as np
 
-test_id = 'addnoise'
+test_id = 'addnoise-eye'
 
 data_dir = '/ssd/fergusgroup/sainaa/imagenet/train/'
 checkpoint_dir = '/ssd/fergusgroup/sainaa/imagenet/checkpoint/'
@@ -41,7 +41,7 @@ image_size = 224
 image_shape = (image_color, image_size, image_size, batch_size)
 
 train_dp.is_curr_batch_noisy = True
-noisy_labels_path = '/home/ss7345/fastnet-noisy/experiments/imagenet-mix1-labels'
+noisy_labels_path = '/home/ss7345/fastnet-noisy/experiments/imagenet-mix2-labels'
 if os.path.isfile(noisy_labels_path):
 	print >> sys.stderr, 'loading noisy labels from ' + noisy_labels_path
 	f = open(noisy_labels_path, 'rb')
@@ -49,7 +49,7 @@ if os.path.isfile(noisy_labels_path):
 	f.close()
 else:
 	print >> sys.stderr, 'generating noisy labels'
-	W = np.load('/home/ss7345/fastnet-noisy/experiments/imagenet-mix1.npy')
+	W = np.load('/home/ss7345/fastnet-noisy/experiments/imagenet-mix2.npy')
 	train_dp.dp.labels_add_noise(W)
 	f = open(noisy_labels_path, 'wb')
 	cPickle.dump(train_dp.dp.noisy_labels, f)

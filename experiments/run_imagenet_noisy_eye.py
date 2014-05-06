@@ -5,7 +5,7 @@ This test is for naive trainer to traine a full imagenet model
 
 from fastnet import data, trainer, net, parser
 
-test_id = 'noisy-eye'
+test_id = 'eye50-ann10'
 
 data_dir = '/ssd/fergusgroup/sainaa/imagenet/train/'
 data_dir_noisy = '/ssd/fergusgroup/sainaa/imagenet/noisy/'
@@ -45,5 +45,5 @@ net = net.FastNet(learning_rate, image_shape, init_model)
 param_dict = globals()
 t = trainer.Trainer(**param_dict)
 net.adjust_learning_rate(0.1)
-t.train(num_epoch)
+t.train(5)
 
