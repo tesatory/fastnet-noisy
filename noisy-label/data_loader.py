@@ -3,6 +3,7 @@ import scipy.io
 import pycuda.driver as cuda
 from pycuda import gpuarray
 from fastnet import util
+import os.path
 
 def copy_to_gpu(data):
     return gpuarray.to_gpu(data.astype(np.float32))
@@ -32,8 +33,15 @@ def prepare_batches(data, labels, batch_size):
 
     return batches
 
+def get_data_path():
+    base_dir = '/home/sainbar/data/'
+    if os.path.exists(base_dir) == False:
+        base_dir = '/home/ss7345/data/'
+    assert os.path.exists(base_dir)   
+    return base_dir 
+
 def load_cifar10():
-    base_dir = '/home/sainbar/data/cifar-10/train/'
+    base_dir = get_data_path() + 'cifar-10/train/'
     batch_meta = util.load(base_dir + 'batches.meta')
     data_file1 = util.load(base_dir + 'data_batch_1')
     data_file2 = util.load(base_dir + 'data_batch_2')
@@ -57,7 +65,7 @@ def load_cifar10():
     return train_data, train_labels, test_data, test_labels
 
 def load_cifar100():
-    base_dir = '/home/sainbar/data/cifar-100-python/'
+    base_dir = get_data_path() + '/cifar-100-python/'
     train_file = util.load(base_dir + 'train')
     train_data = train_file['data']
     train_data = train_data.T.copy()
@@ -74,14 +82,14 @@ def load_cifar100():
     return train_data, train_labels, test_data, test_labels
 
 def load_noise():
-    data_file = scipy.io.loadmat('/home/sainbar/data/cifar-100/tiny_img_noise.mat')
+    data_file = scipy.io.loadmat(get_data_path() + 'cifar-100/tiny_img_noise.mat')
     data = data_file['data']
     data = data.astype(np.float32)
     data = data.copy()
     return data
     
 def load_noisy_labeled():
-    data_file = scipy.io.loadmat('/home/sainbar/data/cifar-10/geoff-neg-150k.mat')
+    data_file = scipy.io.loadmat(get_data_path() + 'cifar-10/geoff-neg-150k.mat')
     data = data_file['data']
     labels = data_file['labels']
     data = data.astype(np.float32)
@@ -93,7 +101,7 @@ def load_noisy_labeled():
     return data, labels
 
 def load_svhn():
-    data_file = scipy.io.loadmat('/home/sainbar/data/svhn/svhn.mat')
+    data_file = scipy.io.loadmat(get_data_path() + '/svhn/svhn.mat')
     train_data = data_file['train_data'].astype(np.float32)
     train_labels = data_file['train_labels'].astype(np.float32) - 1
     test_data = data_file['test_data'].astype(np.float32)
@@ -113,7 +121,7 @@ def load_svhn():
     return train_data, train_labels, test_data, test_labels, extra_data, extra_labels
 
 def load_svhn100k():
-    data_file = scipy.io.loadmat('/home/sainbar/data/svhn/svhn100k.mat')
+    data_file = scipy.io.loadmat(get_data_path() + '/svhn/svhn100k.mat')
     train_data = data_file['data'].astype(np.float32)
     train_labels = data_file['labels'].astype(np.float32) - 1
     test_data = data_file['test_data'].astype(np.float32)

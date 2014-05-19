@@ -367,7 +367,11 @@ class Trainer:
     total_numcase = 0
 
     if self.net.layers[-2].name == 'noise':
-      clear_w = gpuarray.to_gpu(np.eye(self.net.layers[-2].weight.shape[0], dtype = np.float32))
+      w = np.eye(self.net.layers[-2].weight.shape[0], dtype = np.float32)
+      if self.net.layers[-2].weight.shape[0] == 11:
+        w[:,10] = 0.1
+        w[10,10] = 0
+      clear_w = gpuarray.to_gpu(w)
       noisy_w = self.net.layers[-2].weight
       self.net.layers[-2].weight = clear_w
 
@@ -463,7 +467,11 @@ class Trainer:
 
   def get_confusion(self):
     if self.net.layers[-2].name == 'noise':
-      clear_w = gpuarray.to_gpu(np.eye(self.net.layers[-2].weight.shape[0], dtype = np.float32))
+      w = np.eye(self.net.layers[-2].weight.shape[0], dtype = np.float32)
+      if self.net.layers[-2].weight.shape[0] == 11:
+        w[:,10] = 0.1
+        w[10,10] = 0
+      clear_w = gpuarray.to_gpu(w)
       noisy_w = self.net.layers[-2].weight
       self.net.layers[-2].weight = clear_w
 

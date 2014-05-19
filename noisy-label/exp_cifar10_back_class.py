@@ -14,7 +14,7 @@ back_sz = int(sys.argv[2])
 
 # setting
 batch_size = 128
-param_file = '/home/sainbar/fastnet-confussion-layer/config/cifar-10-18pct-confussion.cfg'
+param_file = '../config/cifar-10-18pct-confussion.cfg'
 learning_rate = 1
 image_color = 3
 image_size = 32
