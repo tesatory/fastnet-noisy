@@ -3,11 +3,9 @@ import fastnet.net
 import numpy as np
 import cudaconv2
 import sys
-import scipy.io
 import net_trainer_noisy
 import data_loader
 import confusion_matrix
-import save_net_cifar10
 import cPickle
 
 pure_sz = int(sys.argv[1])
@@ -47,9 +45,9 @@ noisy_data = np.concatenate((noisy_data[:,0:noise_sz], back_data[:,0:back_sz]), 
 noisy_labels = np.concatenate((noisy_labels[0:noise_sz], back_labels[0:back_sz]))
 
 # confussion matrix
-d = scipy.io.loadmat('results/noise-dist-negative150k.mat')
+Q = np.load('results/noise-dist-negative150k-Q.npy')
 w = np.zeros((11,11),dtype=np.float32)
-w[:10,:] = d['Qnorm']
+w[:10,:] = Q
 # w[:,10] = 0
 # w[10,10] = 1
 w[10,10] = 0.3
@@ -75,9 +73,9 @@ print 'train:', train_data.shape[1], 'samples', len(train_batches), 'batches'
 print 'noisy:', noisy_data.shape[1], 'samples', len(noisy_batches), 'batches'
 print 'test:', test_data.shape[1], 'samples', len(test_batches), 'batches'
 
-net_trainer_noisy.train(net, 100, train_batches, noisy_batches, test_batches, 1.0)
-net_trainer_noisy.train(net, 20, train_batches, noisy_batches, test_batches, 0.1)
-net.adjust_learning_rate(0.1)
-net_trainer_noisy.train(net, 5, train_batches, noisy_batches, test_batches, 0.1)
-net.adjust_learning_rate(0.1)
-net_trainer_noisy.train(net, 5, train_batches, noisy_batches, test_batches, 0.1)
+# net_trainer_noisy.train(net, 100, train_batches, noisy_batches, test_batches, 1.0)
+# net_trainer_noisy.train(net, 20, train_batches, noisy_batches, test_batches, 0.1)
+# net.adjust_learning_rate(0.1)
+# net_trainer_noisy.train(net, 5, train_batches, noisy_batches, test_batches, 0.1)
+# net.adjust_learning_rate(0.1)
+# net_trainer_noisy.train(net, 5, train_batches, noisy_batches, test_batches, 0.1)
