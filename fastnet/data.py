@@ -398,6 +398,7 @@ class NoisyDataProvider(DataProvider):
   def __init__(self, dp_clear, dp_noisy):
     self.dp_clear = dp_clear
     self.dp_noisy = dp_noisy
+    self.noisy_factor = 1
     self.reset()
 
   def reset(self):
@@ -413,7 +414,7 @@ class NoisyDataProvider(DataProvider):
     pos2 = self.batch_index_noisy + 1.0 * self.dp_noisy.index / self.dp_noisy.dp.batch_size
     pos2 = 1.0 * pos2 / self.dp_noisy.dp.get_batch_num()
     pos2 += self.dp_noisy.curr_epoch
-    if pos1 < pos2:
+    if pos1 * self.noisy_factor < pos2:
       # print 'clear batch', self.dp_clear.index, self.batch_index_clear, self.dp_clear.curr_epoch, pos1
       self.is_curr_batch_noisy = False
       batch = self.dp_clear.get_next_batch(batch_size)

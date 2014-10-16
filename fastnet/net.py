@@ -257,9 +257,10 @@ class FastNet(object):
 
     if train == TRAIN:
       self.bprop(data, label, self.output)
-      x = self.layers[-2].weightGrad.get()
-      x = np.minimum(x, 1000)
-      self.layers[-2].weightGrad.set(x)
+      if hasattr(self.layers[-2], 'weight'):
+        x = self.layers[-2].weightGrad.get()
+        x = np.minimum(x, 1000)
+        self.layers[-2].weightGrad.set(x)
       self.update()
 
     # make sure we have everything finished before returning!
